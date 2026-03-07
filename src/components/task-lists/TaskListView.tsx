@@ -1,4 +1,4 @@
-import { useState, useRef, type KeyboardEvent } from 'react'
+import { useState, useRef, useCallback, type KeyboardEvent } from 'react'
 import { Plus, X, ChevronDown, ChevronRight } from 'lucide-react'
 import type { TaskListsProps, TaskList } from '../../types/task-lists'
 import { TaskRow } from './TaskRow'
@@ -19,6 +19,7 @@ export function TaskListView({
   onEditSubtask,
   onDeleteSubtask,
   onUpdateDueDate,
+  onReorderTasks,
 }: TaskListsProps) {
   const [activeListId, setActiveListId] = useState<string | null>(lists[0]?.id ?? null)
   const [showCompleted, setShowCompleted] = useState(false)
@@ -30,6 +31,8 @@ export function TaskListView({
   const [confirmDeleteListId, setConfirmDeleteListId] = useState<string | null>(null)
 
   const newTaskInputRef = useRef<HTMLInputElement>(null)
+  const dragTaskIdRef = useRef<string | null>(null)
+  const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null)
 
   const activeList = lists.find((l) => l.id === activeListId) ?? null
 
@@ -37,6 +40,49 @@ export function TaskListView({
   if (!activeList && lists.length > 0 && activeListId !== lists[0].id) {
     setActiveListId(lists[0].id)
   }
+
+  const handleDragStart = useCallback((taskId: string) => (e: React.DragEvent) => {
+    dragTaskIdRef.current = taskId
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', taskId)
+    // Capture the element reference before the event is recycled
+    const el = e.currentTarget as HTMLElement
+    requestAnimationFrame(() => {
+      el.style.opacity = '0.4'
+    })
+  }, [])
+
+  const handleDragOver = useCallback((taskId: string) => (e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setDragOverTaskId(taskId)
+  }, [])
+
+  const handleDrop = useCallback((targetTaskId: string) => (e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOverTaskId(null)
+    const draggedId = dragTaskIdRef.current
+    if (!draggedId || draggedId === targetTaskId || !activeList) return
+
+    const currentIds = activeList.tasks.map((t) => t.id)
+    const fromIndex = currentIds.indexOf(draggedId)
+    const toIndex = currentIds.indexOf(targetTaskId)
+    if (fromIndex === -1 || toIndex === -1) return
+
+    const reordered = [...currentIds]
+    reordered.splice(fromIndex, 1)
+    reordered.splice(toIndex, 0, draggedId)
+
+    onReorderTasks?.(activeList.id, reordered)
+    dragTaskIdRef.current = null
+  }, [activeList, onReorderTasks])
+
+  const handleDragEnd = useCallback((e: React.DragEvent) => {
+    const el = e.currentTarget as HTMLElement
+    el.style.opacity = ''
+    dragTaskIdRef.current = null
+    setDragOverTaskId(null)
+  }, [])
 
   const handleAddTask = () => {
     if (!newTaskTitle.trim() || !activeListId) return
@@ -224,19 +270,32 @@ export function TaskListView({
             ) : (
               <div className="space-y-0.5">
                 {activeList.tasks.map((task) => (
-                  <TaskRow
+                  <div
                     key={task.id}
-                    task={task}
-                    onComplete={() => onCompleteTask?.(activeList.id, task.id)}
-                    onEdit={(title) => onEditTask?.(activeList.id, task.id, title)}
-                    onDelete={() => onDeleteTask?.(activeList.id, task.id)}
-                    onCreateSubtask={(title) => onCreateSubtask?.(activeList.id, task.id, title)}
-                    onCompleteSubtask={(subtaskId) => onCompleteSubtask?.(activeList.id, task.id, subtaskId)}
-                    onUncompleteSubtask={(subtaskId) => onUncompleteSubtask?.(activeList.id, task.id, subtaskId)}
-                    onEditSubtask={(subtaskId, title) => onEditSubtask?.(activeList.id, task.id, subtaskId, title)}
-                    onDeleteSubtask={(subtaskId) => onDeleteSubtask?.(activeList.id, task.id, subtaskId)}
-                    onUpdateDueDate={(date) => onUpdateDueDate?.(task.id, date)}
-                  />
+                    className={
+                      dragOverTaskId === task.id
+                        ? 'border-t-2 border-indigo-400 dark:border-indigo-500'
+                        : 'border-t-2 border-transparent'
+                    }
+                  >
+                    <TaskRow
+                      task={task}
+                      draggable
+                      onDragStart={handleDragStart(task.id)}
+                      onDragOver={handleDragOver(task.id)}
+                      onDrop={handleDrop(task.id)}
+                      onDragEnd={handleDragEnd}
+                      onComplete={() => onCompleteTask?.(activeList.id, task.id)}
+                      onEdit={(title) => onEditTask?.(activeList.id, task.id, title)}
+                      onDelete={() => onDeleteTask?.(activeList.id, task.id)}
+                      onCreateSubtask={(title) => onCreateSubtask?.(activeList.id, task.id, title)}
+                      onCompleteSubtask={(subtaskId) => onCompleteSubtask?.(activeList.id, task.id, subtaskId)}
+                      onUncompleteSubtask={(subtaskId) => onUncompleteSubtask?.(activeList.id, task.id, subtaskId)}
+                      onEditSubtask={(subtaskId, title) => onEditSubtask?.(activeList.id, task.id, subtaskId, title)}
+                      onDeleteSubtask={(subtaskId) => onDeleteSubtask?.(activeList.id, task.id, subtaskId)}
+                      onUpdateDueDate={(date) => onUpdateDueDate?.(task.id, date)}
+                    />
+                  </div>
                 ))}
               </div>
             )}

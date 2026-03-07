@@ -20,6 +20,7 @@ export function TasksPage() {
     uncompleteSubtask,
     deleteSubtask,
     updateDueDate,
+    reorderTasks,
   } = useTaskLists()
 
   if (loading) {
@@ -55,6 +56,7 @@ export function TasksPage() {
       onUncompleteSubtask={uncompleteSubtask}
       onDeleteSubtask={deleteSubtask}
       onUpdateDueDate={updateDueDate}
+      onReorderTasks={reorderTasks}
     />
   )
 }
