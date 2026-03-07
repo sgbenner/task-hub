@@ -14,6 +14,12 @@ export function TasksPage() {
     completeTask,
     uncompleteTask,
     deleteTask,
+    createSubtask,
+    editSubtask,
+    completeSubtask,
+    uncompleteSubtask,
+    deleteSubtask,
+    updateDueDate,
   } = useTaskLists()
 
   if (loading) {
@@ -43,6 +49,12 @@ export function TasksPage() {
       onCompleteTask={completeTask}
       onUncompleteTask={uncompleteTask}
       onDeleteTask={deleteTask}
+      onCreateSubtask={createSubtask}
+      onEditSubtask={editSubtask}
+      onCompleteSubtask={completeSubtask}
+      onUncompleteSubtask={uncompleteSubtask}
+      onDeleteSubtask={deleteSubtask}
+      onUpdateDueDate={updateDueDate}
     />
   )
 }

@@ -15,13 +15,51 @@ interface DbTask {
   completed: boolean
   completed_at: string | null
   order: number
+  parent_id: string | null
+  scheduled_date: string | null
+  due_date: string | null
 }
 
 function buildLists(dbLists: DbTaskList[], dbTasks: DbTask[]): TaskList[] {
+  const parentTasks = dbTasks.filter((t) => t.parent_id === null)
+  const childTasks = dbTasks.filter((t) => t.parent_id !== null)
+
+  const childrenByParent = new Map<string, DbTask[]>()
+  for (const child of childTasks) {
+    const existing = childrenByParent.get(child.parent_id!) ?? []
+    existing.push(child)
+    childrenByParent.set(child.parent_id!, existing)
+  }
+
+  function toTask(t: DbTask): Task {
+    const subtasks = (childrenByParent.get(t.id) ?? [])
+      .sort((a, b) => a.order - b.order)
+      .map((st) => ({
+        id: st.id,
+        title: st.title,
+        completed: st.completed,
+        completedAt: st.completed_at ?? undefined,
+        dueDate: st.due_date ?? undefined,
+        order: st.order,
+        subtasks: [],
+      }))
+
+    return {
+      id: t.id,
+      title: t.title,
+      completed: t.completed,
+      completedAt: t.completed_at ?? undefined,
+      scheduledDate: t.scheduled_date ?? undefined,
+      dueDate: t.due_date ?? undefined,
+      order: t.order,
+      subtasks,
+    }
+  }
+
   return dbLists
     .sort((a, b) => a.order - b.order)
     .map((list) => {
-      const listTasks = dbTasks.filter((t) => t.list_id === list.id)
+      const listTasks = parentTasks.filter((t) => t.list_id === list.id)
       return {
         id: list.id,
         name: list.name,
@@ -36,16 +74,6 @@ function buildLists(dbLists: DbTaskList[], dbTasks: DbTask[]): TaskList[] {
           .map(toTask),
       }
     })
-}
-
-function toTask(t: DbTask): Task {
-  return {
-    id: t.id,
-    title: t.title,
-    completed: t.completed,
-    completedAt: t.completed_at ?? undefined,
-    order: t.order,
-  }
 }
 
 export function useTaskLists() {
@@ -147,6 +175,7 @@ export function useTaskLists() {
       title,
       completed: false,
       order: maxOrder + 1,
+      subtasks: [],
     }
 
     setLists((prev) =>
@@ -305,6 +334,184 @@ export function useTaskLists() {
     await Promise.all(updates)
   }, [])
 
+  const createSubtask = useCallback(async (listId: string, parentId: string, title: string) => {
+    const list = lists.find((l) => l.id === listId)
+    const parent = list?.tasks.find((t) => t.id === parentId)
+      ?? list?.completedTasks.find((t) => t.id === parentId)
+    const maxOrder = parent
+      ? Math.max(...parent.subtasks.map((s) => s.order), -1)
+      : -1
+
+    const tempId = crypto.randomUUID()
+    const newSubtask: Task = {
+      id: tempId,
+      title,
+      completed: false,
+      order: maxOrder + 1,
+      subtasks: [],
+    }
+
+    setLists((prev) =>
+      prev.map((l) => {
+        if (l.id !== listId) return l
+        const addSubtask = (t: Task) =>
+          t.id === parentId ? { ...t, subtasks: [...t.subtasks, newSubtask] } : t
+        return {
+          ...l,
+          tasks: l.tasks.map(addSubtask),
+          completedTasks: l.completedTasks.map(addSubtask),
+        }
+      })
+    )
+
+    const { error } = await supabase
+      .from('tasks')
+      .insert({ list_id: listId, title, order: maxOrder + 1, parent_id: parentId })
+
+    if (error) {
+      setError(error.message)
+    }
+
+    await fetchAll()
+  }, [lists, fetchAll])
+
+  const editSubtask = useCallback(async (_listId: string, _parentId: string, subtaskId: string, title: string) => {
+    setLists((prev) =>
+      prev.map((l) => ({
+        ...l,
+        tasks: l.tasks.map((t) => ({
+          ...t,
+          subtasks: t.subtasks.map((s) => (s.id === subtaskId ? { ...s, title } : s)),
+        })),
+        completedTasks: l.completedTasks.map((t) => ({
+          ...t,
+          subtasks: t.subtasks.map((s) => (s.id === subtaskId ? { ...s, title } : s)),
+        })),
+      }))
+    )
+
+    const { error } = await supabase
+      .from('tasks')
+      .update({ title })
+      .eq('id', subtaskId)
+
+    if (error) {
+      setError(error.message)
+      await fetchAll()
+    }
+  }, [fetchAll])
+
+  const completeSubtask = useCallback(async (_listId: string, _parentId: string, subtaskId: string) => {
+    const now = new Date().toISOString()
+    setLists((prev) =>
+      prev.map((l) => ({
+        ...l,
+        tasks: l.tasks.map((t) => ({
+          ...t,
+          subtasks: t.subtasks.map((s) =>
+            s.id === subtaskId ? { ...s, completed: true, completedAt: now } : s
+          ),
+        })),
+        completedTasks: l.completedTasks.map((t) => ({
+          ...t,
+          subtasks: t.subtasks.map((s) =>
+            s.id === subtaskId ? { ...s, completed: true, completedAt: now } : s
+          ),
+        })),
+      }))
+    )
+
+    const { error } = await supabase
+      .from('tasks')
+      .update({ completed: true, completed_at: now })
+      .eq('id', subtaskId)
+
+    if (error) {
+      setError(error.message)
+      await fetchAll()
+    }
+  }, [fetchAll])
+
+  const uncompleteSubtask = useCallback(async (_listId: string, _parentId: string, subtaskId: string) => {
+    setLists((prev) =>
+      prev.map((l) => ({
+        ...l,
+        tasks: l.tasks.map((t) => ({
+          ...t,
+          subtasks: t.subtasks.map((s) =>
+            s.id === subtaskId ? { ...s, completed: false, completedAt: undefined } : s
+          ),
+        })),
+        completedTasks: l.completedTasks.map((t) => ({
+          ...t,
+          subtasks: t.subtasks.map((s) =>
+            s.id === subtaskId ? { ...s, completed: false, completedAt: undefined } : s
+          ),
+        })),
+      }))
+    )
+
+    const { error } = await supabase
+      .from('tasks')
+      .update({ completed: false, completed_at: null })
+      .eq('id', subtaskId)
+
+    if (error) {
+      setError(error.message)
+      await fetchAll()
+    }
+  }, [fetchAll])
+
+  const updateDueDate = useCallback(async (taskId: string, date: string | null) => {
+    setLists((prev) =>
+      prev.map((l) => ({
+        ...l,
+        tasks: l.tasks.map((t) =>
+          t.id === taskId ? { ...t, dueDate: date ?? undefined } : t
+        ),
+        completedTasks: l.completedTasks.map((t) =>
+          t.id === taskId ? { ...t, dueDate: date ?? undefined } : t
+        ),
+      }))
+    )
+
+    const { error } = await supabase
+      .from('tasks')
+      .update({ due_date: date })
+      .eq('id', taskId)
+
+    if (error) {
+      setError(error.message)
+      await fetchAll()
+    }
+  }, [fetchAll])
+
+  const deleteSubtask = useCallback(async (_listId: string, _parentId: string, subtaskId: string) => {
+    setLists((prev) =>
+      prev.map((l) => ({
+        ...l,
+        tasks: l.tasks.map((t) => ({
+          ...t,
+          subtasks: t.subtasks.filter((s) => s.id !== subtaskId),
+        })),
+        completedTasks: l.completedTasks.map((t) => ({
+          ...t,
+          subtasks: t.subtasks.filter((s) => s.id !== subtaskId),
+        })),
+      }))
+    )
+
+    const { error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('id', subtaskId)
+
+    if (error) {
+      setError(error.message)
+      await fetchAll()
+    }
+  }, [fetchAll])
+
   return {
     lists,
     loading,
@@ -319,5 +526,11 @@ export function useTaskLists() {
     deleteTask,
     reorderTasks,
     reorderLists,
+    createSubtask,
+    editSubtask,
+    completeSubtask,
+    uncompleteSubtask,
+    deleteSubtask,
+    updateDueDate,
   }
 }

@@ -8,6 +8,7 @@ const mockTask = {
   title: 'Review Q1 metrics',
   completed: false,
   order: 0,
+  subtasks: [],
 }
 
 const mockCompletedTask = {
@@ -16,6 +17,7 @@ const mockCompletedTask = {
   completed: true,
   completedAt: '2026-02-27T09:10:00Z',
   order: 0,
+  subtasks: [],
 }
 
 const mockList: TaskList = {
@@ -233,7 +235,7 @@ describe('TaskListView', () => {
       const user = userEvent.setup()
       const listWithTasks: TaskList = {
         ...mockEmptyList,
-        tasks: [{ id: 't-99', title: 'A task', completed: false, order: 0 }],
+        tasks: [{ id: 't-99', title: 'A task', completed: false, order: 0, subtasks: [] }],
       }
 
       render(<TaskListView lists={[mockList, listWithTasks]} />)
@@ -263,6 +265,121 @@ describe('TaskListView', () => {
       // The badge shows count of active tasks — there are multiple "1" elements (badge + completed count)
       const ones = screen.getAllByText('1')
       expect(ones.length).toBeGreaterThanOrEqual(1)
+    })
+  })
+
+  describe('Subtasks', () => {
+    const taskWithSubtasks = {
+      id: 't-parent',
+      title: 'Parent task',
+      completed: false,
+      order: 0,
+      subtasks: [
+        { id: 'st-1', title: 'Subtask one', completed: false, order: 0, subtasks: [] },
+        { id: 'st-2', title: 'Subtask two', completed: true, completedAt: '2026-03-01T00:00:00Z', order: 1, subtasks: [] },
+      ],
+    }
+
+    const listWithSubtasks: TaskList = {
+      id: 'list-sub',
+      name: 'Project',
+      order: 0,
+      tasks: [taskWithSubtasks],
+      completedTasks: [],
+    }
+
+    it('shows subtask progress badge when collapsed', () => {
+      render(<TaskListView lists={[listWithSubtasks]} />)
+      expect(screen.getByText('1/2')).toBeInTheDocument()
+    })
+
+    it('expands to show subtasks when chevron is clicked', async () => {
+      const user = userEvent.setup()
+      render(<TaskListView lists={[listWithSubtasks]} />)
+
+      expect(screen.queryByText('Subtask one')).not.toBeInTheDocument()
+
+      const expandBtn = screen.getByLabelText('Expand subtasks')
+      await user.click(expandBtn)
+
+      expect(screen.getByText('Subtask one')).toBeInTheDocument()
+      expect(screen.getByText('Subtask two')).toBeInTheDocument()
+    })
+
+    it('shows add subtask input when expanded', async () => {
+      const user = userEvent.setup()
+      render(<TaskListView lists={[listWithSubtasks]} />)
+
+      const expandBtn = screen.getByLabelText('Expand subtasks')
+      await user.click(expandBtn)
+
+      expect(screen.getByPlaceholderText('Add subtask…')).toBeInTheDocument()
+    })
+
+    it('calls onCreateSubtask when typing subtask and pressing Enter', async () => {
+      const user = userEvent.setup()
+      const onCreateSubtask = vi.fn()
+
+      render(
+        <TaskListView lists={[listWithSubtasks]} onCreateSubtask={onCreateSubtask} />
+      )
+
+      const expandBtn = screen.getByLabelText('Expand subtasks')
+      await user.click(expandBtn)
+
+      const input = screen.getByPlaceholderText('Add subtask…')
+      await user.type(input, 'New subtask{Enter}')
+
+      expect(onCreateSubtask).toHaveBeenCalledWith('list-sub', 't-parent', 'New subtask')
+    })
+
+    it('calls onDeleteSubtask when clicking delete on a subtask', async () => {
+      const user = userEvent.setup()
+      const onDeleteSubtask = vi.fn()
+
+      render(
+        <TaskListView lists={[listWithSubtasks]} onDeleteSubtask={onDeleteSubtask} />
+      )
+
+      const expandBtn = screen.getByLabelText('Expand subtasks')
+      await user.click(expandBtn)
+
+      // There are multiple delete buttons — parent + 2 subtasks
+      const deleteButtons = screen.getAllByLabelText('Delete task')
+      // The first is the parent, the next two are subtasks
+      await user.click(deleteButtons[1])
+
+      expect(onDeleteSubtask).toHaveBeenCalledWith('list-sub', 't-parent', 'st-1')
+    })
+
+    it('calls onCompleteSubtask when clicking subtask checkbox', async () => {
+      const user = userEvent.setup()
+      const onCompleteSubtask = vi.fn()
+
+      render(
+        <TaskListView lists={[listWithSubtasks]} onCompleteSubtask={onCompleteSubtask} />
+      )
+
+      const expandBtn = screen.getByLabelText('Expand subtasks')
+      await user.click(expandBtn)
+
+      // "Complete task" buttons: parent + the uncompleted subtask (st-1)
+      const completeButtons = screen.getAllByLabelText('Complete task')
+      // completeButtons[0] = parent, completeButtons[1] = st-1
+      await user.click(completeButtons[1])
+
+      expect(onCompleteSubtask).toHaveBeenCalledWith('list-sub', 't-parent', 'st-1')
+    })
+
+    it('collapses subtasks when chevron is clicked again', async () => {
+      const user = userEvent.setup()
+      render(<TaskListView lists={[listWithSubtasks]} />)
+
+      await user.click(screen.getByLabelText('Expand subtasks'))
+      expect(screen.getByText('Subtask one')).toBeInTheDocument()
+
+      await user.click(screen.getByLabelText('Collapse subtasks'))
+      expect(screen.queryByText('Subtask one')).not.toBeInTheDocument()
     })
   })
 })

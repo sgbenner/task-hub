@@ -3,6 +3,9 @@
 
 CREATE SCHEMA IF NOT EXISTS taskhub;
 
+GRANT USAGE ON SCHEMA taskhub TO anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA taskhub GRANT ALL ON TABLES TO anon, authenticated;
+
 -- Task lists
 CREATE TABLE taskhub.task_lists (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -35,3 +38,5 @@ CREATE TABLE taskhub.goals (
 -- Indexes
 CREATE INDEX idx_tasks_list_id ON taskhub.tasks(list_id);
 CREATE INDEX idx_goals_horizon_id ON taskhub.goals(horizon_id);
+
+GRANT ALL ON ALL TABLES IN SCHEMA taskhub TO anon, authenticated;

@@ -13,6 +13,12 @@ export function TaskListView({
   onCompleteTask,
   onUncompleteTask,
   onDeleteTask,
+  onCreateSubtask,
+  onCompleteSubtask,
+  onUncompleteSubtask,
+  onEditSubtask,
+  onDeleteSubtask,
+  onUpdateDueDate,
 }: TaskListsProps) {
   const [activeListId, setActiveListId] = useState<string | null>(lists[0]?.id ?? null)
   const [showCompleted, setShowCompleted] = useState(false)
@@ -224,6 +230,12 @@ export function TaskListView({
                     onComplete={() => onCompleteTask?.(activeList.id, task.id)}
                     onEdit={(title) => onEditTask?.(activeList.id, task.id, title)}
                     onDelete={() => onDeleteTask?.(activeList.id, task.id)}
+                    onCreateSubtask={(title) => onCreateSubtask?.(activeList.id, task.id, title)}
+                    onCompleteSubtask={(subtaskId) => onCompleteSubtask?.(activeList.id, task.id, subtaskId)}
+                    onUncompleteSubtask={(subtaskId) => onUncompleteSubtask?.(activeList.id, task.id, subtaskId)}
+                    onEditSubtask={(subtaskId, title) => onEditSubtask?.(activeList.id, task.id, subtaskId, title)}
+                    onDeleteSubtask={(subtaskId) => onDeleteSubtask?.(activeList.id, task.id, subtaskId)}
+                    onUpdateDueDate={(date) => onUpdateDueDate?.(task.id, date)}
                   />
                 ))}
               </div>
@@ -255,6 +267,11 @@ export function TaskListView({
                         completed
                         onUncomplete={() => onUncompleteTask?.(activeList.id, task.id)}
                         onDelete={() => onDeleteTask?.(activeList.id, task.id)}
+                        onCompleteSubtask={(subtaskId) => onCompleteSubtask?.(activeList.id, task.id, subtaskId)}
+                        onUncompleteSubtask={(subtaskId) => onUncompleteSubtask?.(activeList.id, task.id, subtaskId)}
+                        onEditSubtask={(subtaskId, title) => onEditSubtask?.(activeList.id, task.id, subtaskId, title)}
+                        onDeleteSubtask={(subtaskId) => onDeleteSubtask?.(activeList.id, task.id, subtaskId)}
+                        onUpdateDueDate={(date) => onUpdateDueDate?.(task.id, date)}
                       />
                     ))}
                   </div>
