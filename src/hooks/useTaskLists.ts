@@ -486,6 +486,96 @@ export function useTaskLists() {
     }
   }, [fetchAll])
 
+  const moveTask = useCallback(async (taskId: string, newParentId: string | null, newOrder: number) => {
+    // Snapshot for rollback
+    const snapshot = lists
+
+    // Optimistically update local state
+    setLists((prev) => {
+      // Find the task across all lists (could be a top-level or subtask)
+      let movedTask: Task | null = null
+      let sourceListId: string | null = null
+
+      // Remove task from its current position
+      const withoutTask = prev.map((list) => {
+        // Check top-level tasks
+        const topTask = list.tasks.find((t) => t.id === taskId)
+        if (topTask) {
+          movedTask = topTask
+          sourceListId = list.id
+          return { ...list, tasks: list.tasks.filter((t) => t.id !== taskId) }
+        }
+
+        // Check subtasks
+        for (const parent of list.tasks) {
+          const sub = parent.subtasks.find((s) => s.id === taskId)
+          if (sub) {
+            movedTask = sub
+            sourceListId = list.id
+            return {
+              ...list,
+              tasks: list.tasks.map((t) =>
+                t.id === parent.id
+                  ? { ...t, subtasks: t.subtasks.filter((s) => s.id !== taskId) }
+                  : t
+              ),
+            }
+          }
+        }
+
+        return list
+      })
+
+      if (!movedTask || !sourceListId) return prev
+
+      // Place into new position
+      return withoutTask.map((list) => {
+        if (list.id !== sourceListId) return list
+
+        if (newParentId === null) {
+          // Promote to top-level
+          const updated = { ...movedTask!, order: newOrder, subtasks: movedTask!.subtasks }
+          const newTasks = [...list.tasks]
+          newTasks.splice(newOrder, 0, updated)
+          return {
+            ...list,
+            tasks: newTasks.map((t, i) => ({ ...t, order: i })),
+          }
+        } else {
+          // Nest under parent
+          return {
+            ...list,
+            tasks: list.tasks.map((t) => {
+              if (t.id !== newParentId) return t
+              const newSubtasks = [...t.subtasks]
+              newSubtasks.splice(newOrder, 0, { ...movedTask!, order: newOrder, subtasks: [] })
+              return {
+                ...t,
+                subtasks: newSubtasks.map((s, i) => ({ ...s, order: i })),
+              }
+            }),
+          }
+        }
+      })
+    })
+
+    // Persist to Supabase
+    const { error } = await supabase
+      .from('tasks')
+      .update({ parent_id: newParentId, order: newOrder })
+      .eq('id', taskId)
+
+    if (error) {
+      setError(error.message)
+      setLists(snapshot)
+      return
+    }
+
+    // Re-order siblings in the target group
+    // Fetch fresh data to ensure consistency
+    await fetchAll()
+  }, [lists, fetchAll])
+
   const deleteSubtask = useCallback(async (_listId: string, _parentId: string, subtaskId: string) => {
     setLists((prev) =>
       prev.map((l) => ({
@@ -532,5 +622,6 @@ export function useTaskLists() {
     uncompleteSubtask,
     deleteSubtask,
     updateDueDate,
+    moveTask,
   }
 }

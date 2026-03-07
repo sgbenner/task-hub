@@ -1,4 +1,4 @@
-import { useState, useRef, type KeyboardEvent } from 'react'
+import { useState, useRef, type KeyboardEvent, type DragEvent } from 'react'
 import { GripVertical, X, ChevronRight, ChevronDown, Plus, Calendar } from 'lucide-react'
 import type { Task } from '../../types/task-lists'
 
@@ -21,12 +21,39 @@ function isOverdue(dueDate: string, completed: boolean): boolean {
   return dueDate < getLocalDateString()
 }
 
+export type DropZone = 'above' | 'below' | 'nest'
+
+/** Pure function for computing drop zone from cursor position relative to an element's rect */
+export function computeDropZone(
+  clientY: number,
+  clientX: number,
+  rect: { top: number; height: number; left: number; width: number },
+  isSubtask: boolean,
+): DropZone {
+  const height = rect.height || 1
+  const width = rect.width || 1
+  const y = clientY - rect.top
+  const x = clientX - rect.left
+
+  // If dragging to the right side (indent), signal nesting — only for top-level tasks
+  if (!isSubtask && x > width * 0.6) {
+    return 'nest'
+  }
+
+  // Top third = above, bottom third = below
+  if (y < height / 3) return 'above'
+  if (y > (height * 2) / 3) return 'below'
+  // Middle = nest (only for top-level tasks)
+  return isSubtask ? (y < height / 2 ? 'above' : 'below') : 'nest'
+}
+
 interface TaskRowProps {
   task: Task
   completed?: boolean
   isSubtask?: boolean
   showDragHandle?: boolean
   extraActions?: React.ReactNode
+  parentId?: string | null
   onComplete?: () => void
   onUncomplete?: () => void
   onEdit?: (title: string) => void
@@ -37,6 +64,8 @@ interface TaskRowProps {
   onEditSubtask?: (subtaskId: string, title: string) => void
   onDeleteSubtask?: (subtaskId: string) => void
   onUpdateDueDate?: (date: string | null) => void
+  onMoveTask?: (taskId: string, newParentId: string | null, newOrder: number) => void
+  taskIndex?: number
 }
 
 export function TaskRow({
@@ -45,6 +74,7 @@ export function TaskRow({
   isSubtask = false,
   showDragHandle = true,
   extraActions,
+  parentId = null,
   onComplete,
   onUncomplete,
   onEdit,
@@ -55,13 +85,17 @@ export function TaskRow({
   onEditSubtask,
   onDeleteSubtask,
   onUpdateDueDate,
+  onMoveTask,
+  taskIndex = 0,
 }: TaskRowProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editValue, setEditValue] = useState(task.title)
   const [expanded, setExpanded] = useState(false)
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('')
+  const [dropZone, setDropZone] = useState<DropZone | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const dateInputRef = useRef<HTMLInputElement>(null)
+  const rowRef = useRef<HTMLDivElement>(null)
 
   const overdue = !isSubtask && !!task.dueDate && isOverdue(task.dueDate, completed)
   const hasSubtasks = task.subtasks.length > 0
@@ -110,13 +144,111 @@ export function TaskRow({
     if (e.key === 'Escape') setNewSubtaskTitle('')
   }
 
+  // --- Drag-and-drop handlers ---
+  const handleDragStart = (e: DragEvent<HTMLDivElement>) => {
+    e.dataTransfer.setData('application/taskhub-task', JSON.stringify({
+      taskId: task.id,
+      parentId,
+      isSubtask,
+    }))
+    e.dataTransfer.effectAllowed = 'move'
+    // Add a slight delay visual for the dragged element
+    if (rowRef.current) {
+      rowRef.current.style.opacity = '0.4'
+    }
+  }
+
+  const handleDragEnd = () => {
+    if (rowRef.current) {
+      rowRef.current.style.opacity = '1'
+    }
+    setDropZone(null)
+  }
+
+  const getDropZone = (e: DragEvent<HTMLDivElement>): DropZone => {
+    const rect = (rowRef.current ?? e.currentTarget).getBoundingClientRect()
+    return computeDropZone(e.clientY, e.clientX, rect, isSubtask)
+  }
+
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    if (!e.dataTransfer.types.includes('application/taskhub-task')) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setDropZone(getDropZone(e))
+  }
+
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    // Only clear if leaving the row entirely
+    if (rowRef.current && !rowRef.current.contains(e.relatedTarget as Node)) {
+      setDropZone(null)
+    }
+  }
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setDropZone(null)
+
+    const data = e.dataTransfer.getData('application/taskhub-task')
+    if (!data || !onMoveTask) return
+
+    const { taskId: draggedId } = JSON.parse(data) as { taskId: string; parentId: string | null; isSubtask: boolean }
+
+    // Don't drop on yourself
+    if (draggedId === task.id) return
+
+    const zone = getDropZone(e)
+
+    if (zone === 'nest') {
+      // Make it a subtask of this task (append at end)
+      onMoveTask(draggedId, task.id, task.subtasks.length)
+    } else if (zone === 'above') {
+      // Insert before this task at the same level
+      onMoveTask(draggedId, parentId, taskIndex)
+    } else {
+      // Insert after this task at the same level
+      onMoveTask(draggedId, parentId, taskIndex + 1)
+    }
+  }
+
+  // Drop indicator styles
+  const dropIndicatorClasses = (() => {
+    if (!dropZone) return ''
+    switch (dropZone) {
+      case 'above':
+        return 'ring-2 ring-indigo-400 ring-offset-1 rounded-t-lg'
+      case 'below':
+        return 'ring-2 ring-indigo-400 ring-offset-1 rounded-b-lg'
+      case 'nest':
+        return 'bg-indigo-50 dark:bg-indigo-950/40 ring-2 ring-indigo-400/50 ring-inset'
+    }
+  })()
+
   return (
-    <div>
+    <div
+      ref={rowRef}
+      draggable={!isEditing && !completed}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      data-task-id={task.id}
+      data-testid={`task-row-${task.id}`}
+    >
+      {/* Top drop line indicator */}
+      {dropZone === 'above' && (
+        <div
+          className="h-0.5 bg-indigo-500 rounded-full -mt-px mb-0"
+          data-testid="drop-indicator-above"
+        />
+      )}
+
       <div className={[
         'flex items-center gap-2.5 px-1 py-1.5 rounded-lg group transition-colors',
         overdue
           ? 'bg-red-50/60 hover:bg-red-50 dark:bg-red-950/20 dark:hover:bg-red-950/30'
           : 'hover:bg-stone-50 dark:hover:bg-stone-800/40',
+        dropIndicatorClasses,
       ].join(' ')}>
         {/* Expand/collapse chevron — only for non-subtask rows */}
         {!isSubtask ? (
@@ -273,19 +405,38 @@ export function TaskRow({
         )}
       </div>
 
+      {/* Nest drop indicator */}
+      {dropZone === 'nest' && (
+        <div
+          className="ml-8 h-0.5 bg-indigo-500 rounded-full"
+          data-testid="drop-indicator-nest"
+        />
+      )}
+
+      {/* Bottom drop line indicator */}
+      {dropZone === 'below' && (
+        <div
+          className="h-0.5 bg-indigo-500 rounded-full -mb-px mt-0"
+          data-testid="drop-indicator-below"
+        />
+      )}
+
       {/* Subtask list (expanded) */}
       {!isSubtask && expanded && (
         <div className="pl-8 space-y-0.5">
-          {task.subtasks.map((subtask) => (
+          {task.subtasks.map((subtask, i) => (
             <TaskRow
               key={subtask.id}
               task={subtask}
               completed={subtask.completed}
               isSubtask
+              parentId={task.id}
+              taskIndex={i}
               onComplete={() => onCompleteSubtask?.(subtask.id)}
               onUncomplete={() => onUncompleteSubtask?.(subtask.id)}
               onEdit={(title) => onEditSubtask?.(subtask.id, title)}
               onDelete={() => onDeleteSubtask?.(subtask.id)}
+              onMoveTask={onMoveTask}
             />
           ))}
 

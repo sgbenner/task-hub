@@ -19,6 +19,7 @@ export function TaskListView({
   onEditSubtask,
   onDeleteSubtask,
   onUpdateDueDate,
+  onMoveTask,
 }: TaskListsProps) {
   const [activeListId, setActiveListId] = useState<string | null>(lists[0]?.id ?? null)
   const [showCompleted, setShowCompleted] = useState(false)
@@ -223,10 +224,12 @@ export function TaskListView({
               </div>
             ) : (
               <div className="space-y-0.5">
-                {activeList.tasks.map((task) => (
+                {activeList.tasks.map((task, index) => (
                   <TaskRow
                     key={task.id}
                     task={task}
+                    taskIndex={index}
+                    parentId={null}
                     onComplete={() => onCompleteTask?.(activeList.id, task.id)}
                     onEdit={(title) => onEditTask?.(activeList.id, task.id, title)}
                     onDelete={() => onDeleteTask?.(activeList.id, task.id)}
@@ -236,6 +239,7 @@ export function TaskListView({
                     onEditSubtask={(subtaskId, title) => onEditSubtask?.(activeList.id, task.id, subtaskId, title)}
                     onDeleteSubtask={(subtaskId) => onDeleteSubtask?.(activeList.id, task.id, subtaskId)}
                     onUpdateDueDate={(date) => onUpdateDueDate?.(task.id, date)}
+                    onMoveTask={onMoveTask}
                   />
                 ))}
               </div>
