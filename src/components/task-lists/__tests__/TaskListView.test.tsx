@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { TaskListView } from '../TaskListView'
 import type { TaskList } from '../../../types/task-lists'
@@ -149,7 +149,7 @@ describe('TaskListView', () => {
   })
 
   describe('Task deletion', () => {
-    it('calls onDeleteTask when clicking delete button', async () => {
+    it('shows confirmation dialog when clicking delete button', async () => {
       const user = userEvent.setup()
       const onDeleteTask = vi.fn()
 
@@ -160,7 +160,68 @@ describe('TaskListView', () => {
       const deleteBtn = screen.getByLabelText('Delete task')
       await user.click(deleteBtn)
 
+      expect(onDeleteTask).not.toHaveBeenCalled()
+      expect(screen.getByText(/Delete "Review Q1 metrics"\?/)).toBeInTheDocument()
+      expect(screen.getByText('Cancel')).toBeInTheDocument()
+    })
+
+    it('calls onDeleteTask after confirming deletion', async () => {
+      const user = userEvent.setup()
+      const onDeleteTask = vi.fn()
+
+      render(
+        <TaskListView lists={[mockList]} onDeleteTask={onDeleteTask} />
+      )
+
+      const deleteBtn = screen.getByLabelText('Delete task')
+      await user.click(deleteBtn)
+      await user.click(screen.getByText('Delete'))
+
       expect(onDeleteTask).toHaveBeenCalledWith('list-1', 't-1')
+    })
+
+    it('does not delete when cancelling confirmation', async () => {
+      const user = userEvent.setup()
+      const onDeleteTask = vi.fn()
+
+      render(
+        <TaskListView lists={[mockList]} onDeleteTask={onDeleteTask} />
+      )
+
+      const deleteBtn = screen.getByLabelText('Delete task')
+      await user.click(deleteBtn)
+      await user.click(screen.getByText('Cancel'))
+
+      expect(onDeleteTask).not.toHaveBeenCalled()
+      expect(screen.queryByText(/Delete "Review Q1 metrics"\?/)).not.toBeInTheDocument()
+    })
+
+    it('mentions subtasks in confirmation when task has subtasks', async () => {
+      const user = userEvent.setup()
+      const taskWithSubs = {
+        id: 't-sub',
+        title: 'Parent task',
+        completed: false,
+        order: 0,
+        subtasks: [
+          { id: 'st-1', title: 'Sub one', completed: false, order: 0, subtasks: [] },
+          { id: 'st-2', title: 'Sub two', completed: false, order: 1, subtasks: [] },
+        ],
+      }
+      const listWithSubs: TaskList = {
+        id: 'list-sub',
+        name: 'Project',
+        order: 0,
+        tasks: [taskWithSubs],
+        completedTasks: [],
+      }
+
+      render(<TaskListView lists={[listWithSubs]} onDeleteTask={vi.fn()} />)
+
+      const deleteBtn = screen.getByLabelText('Delete task')
+      await user.click(deleteBtn)
+
+      expect(screen.getByText(/2 subtasks/)).toBeInTheDocument()
     })
   })
 
@@ -333,7 +394,7 @@ describe('TaskListView', () => {
       expect(onCreateSubtask).toHaveBeenCalledWith('list-sub', 't-parent', 'New subtask')
     })
 
-    it('calls onDeleteSubtask when clicking delete on a subtask', async () => {
+    it('calls onDeleteSubtask after confirming deletion on a subtask', async () => {
       const user = userEvent.setup()
       const onDeleteSubtask = vi.fn()
 
@@ -348,6 +409,11 @@ describe('TaskListView', () => {
       const deleteButtons = screen.getAllByLabelText('Delete task')
       // The first is the parent, the next two are subtasks
       await user.click(deleteButtons[1])
+
+      expect(onDeleteSubtask).not.toHaveBeenCalled()
+      expect(screen.getByText(/Delete "Subtask one"\?/)).toBeInTheDocument()
+
+      await user.click(screen.getByText('Delete'))
 
       expect(onDeleteSubtask).toHaveBeenCalledWith('list-sub', 't-parent', 'st-1')
     })
