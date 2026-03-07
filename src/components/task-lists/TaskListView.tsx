@@ -18,6 +18,7 @@ export function TaskListView({
   onCompleteSubtask,
   onUncompleteSubtask,
   onEditSubtask,
+  onReorderTasks,
   onDeleteSubtask,
   onUpdateDueDate,
 }: TaskListsProps) {
@@ -103,6 +104,26 @@ export function TaskListView({
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [kebabListId])
+
+  // Drag-and-drop reordering
+  const dragTaskId = useRef<string | null>(null)
+
+  const handleDragStart = (taskId: string) => {
+    dragTaskId.current = taskId
+  }
+
+  const handleDrop = (targetTaskId: string) => {
+    const sourceId = dragTaskId.current
+    dragTaskId.current = null
+    if (!sourceId || sourceId === targetTaskId || !activeList) return
+    const ids = activeList.tasks.map((t) => t.id)
+    const fromIdx = ids.indexOf(sourceId)
+    const toIdx = ids.indexOf(targetTaskId)
+    if (fromIdx === -1 || toIdx === -1) return
+    ids.splice(fromIdx, 1)
+    ids.splice(toIdx, 0, sourceId)
+    onReorderTasks?.(activeList.id, ids)
+  }
 
   const handleDeleteList = (listId: string) => {
     const list = lists.find((l) => l.id === listId)
@@ -275,19 +296,27 @@ export function TaskListView({
             ) : (
               <div className="space-y-0.5">
                 {activeList.tasks.map((task) => (
-                  <TaskRow
+                  <div
                     key={task.id}
-                    task={task}
-                    onComplete={() => onCompleteTask?.(activeList.id, task.id)}
-                    onEdit={(title) => onEditTask?.(activeList.id, task.id, title)}
-                    onDelete={() => onDeleteTask?.(activeList.id, task.id)}
-                    onCreateSubtask={(title) => onCreateSubtask?.(activeList.id, task.id, title)}
-                    onCompleteSubtask={(subtaskId) => onCompleteSubtask?.(activeList.id, task.id, subtaskId)}
-                    onUncompleteSubtask={(subtaskId) => onUncompleteSubtask?.(activeList.id, task.id, subtaskId)}
-                    onEditSubtask={(subtaskId, title) => onEditSubtask?.(activeList.id, task.id, subtaskId, title)}
-                    onDeleteSubtask={(subtaskId) => onDeleteSubtask?.(activeList.id, task.id, subtaskId)}
-                    onUpdateDueDate={(date) => onUpdateDueDate?.(task.id, date)}
-                  />
+                    data-task-id={task.id}
+                    draggable
+                    onDragStart={() => handleDragStart(task.id)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={() => handleDrop(task.id)}
+                  >
+                    <TaskRow
+                      task={task}
+                      onComplete={() => onCompleteTask?.(activeList.id, task.id)}
+                      onEdit={(title) => onEditTask?.(activeList.id, task.id, title)}
+                      onDelete={() => onDeleteTask?.(activeList.id, task.id)}
+                      onCreateSubtask={(title) => onCreateSubtask?.(activeList.id, task.id, title)}
+                      onCompleteSubtask={(subtaskId) => onCompleteSubtask?.(activeList.id, task.id, subtaskId)}
+                      onUncompleteSubtask={(subtaskId) => onUncompleteSubtask?.(activeList.id, task.id, subtaskId)}
+                      onEditSubtask={(subtaskId, title) => onEditSubtask?.(activeList.id, task.id, subtaskId, title)}
+                      onDeleteSubtask={(subtaskId) => onDeleteSubtask?.(activeList.id, task.id, subtaskId)}
+                      onUpdateDueDate={(date) => onUpdateDueDate?.(task.id, date)}
+                    />
+                  </div>
                 ))}
               </div>
             )}
