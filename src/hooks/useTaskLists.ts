@@ -516,6 +516,7 @@ export function useTaskLists() {
     lists,
     loading,
     error,
+    fetchAll,
     createList,
     renameList,
     deleteList,

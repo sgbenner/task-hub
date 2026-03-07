@@ -75,8 +75,29 @@ export type AiPlannerProps = AiPlannerState & AiPlannerCallbacks & {
   taskMap: Map<string, SearchableTask>
 }
 
+export interface AiCreatedTask {
+  title: string
+  listId: string
+  dueDate?: string
+  subtasks?: { title: string }[]
+}
+
+export interface AiTaskCreatorState {
+  status: 'idle' | 'loading' | 'done' | 'error'
+  createdTasks: AiCreatedTask[]
+  errorMessage: string | null
+}
+
+export interface AiTaskCreatorCallbacks {
+  createTasksFromPrompt: (prompt: string) => void
+  reset: () => void
+}
+
+export type AiTaskCreatorProps = AiTaskCreatorState & AiTaskCreatorCallbacks
+
 export interface TaskListsProps {
   lists: TaskList[]
+  aiTaskCreatorProps?: AiTaskCreatorProps
   onCreateList?: (name: string) => void
   onRenameList?: (listId: string, newName: string) => void
   onDeleteList?: (listId: string) => void
