@@ -1,0 +1,76 @@
+{
+  "_meta": {
+    "models": {
+      "TaskList": "A named collection of tasks created by the user. Users can have multiple lists for different areas of their life (e.g., Work, Personal). Lists are ordered and can be reordered by the user.",
+      "Task": "A single actionable item belonging to a task list. Has only a title. When completed, it is hidden from the active view but retained for history. Tasks can be reordered within their list."
+    },
+    "relationships": [
+      "Each TaskList has an ordered array of active Tasks and completed Tasks",
+      "Tasks belong to exactly one TaskList"
+    ]
+  },
+  "lists": [
+    {
+      "id": "list-1",
+      "name": "Work",
+      "order": 0,
+      "tasks": [
+        { "id": "t-101", "title": "Review Q1 performance metrics and prepare summary for Thursday's meeting", "completed": false, "order": 0 },
+        { "id": "t-102", "title": "Follow up with design team on homepage revisions", "completed": false, "order": 1 },
+        { "id": "t-103", "title": "Update project timeline in Notion", "completed": false, "order": 2 },
+        { "id": "t-104", "title": "Schedule 1:1 with Jordan", "completed": false, "order": 3 },
+        { "id": "t-105", "title": "Draft budget proposal for new hires", "completed": false, "order": 4 },
+        { "id": "t-106", "title": "Send onboarding docs to new contractor", "completed": false, "order": 5 },
+        { "id": "t-107", "title": "Audit current tool subscriptions", "completed": false, "order": 6 }
+      ],
+      "completedTasks": [
+        { "id": "t-108", "title": "Kick off Q2 planning session", "completed": true, "completedAt": "2026-02-28T14:23:00Z", "order": 0 },
+        { "id": "t-109", "title": "Send invoice to Acme Corp", "completed": true, "completedAt": "2026-02-27T09:10:00Z", "order": 1 },
+        { "id": "t-110", "title": "Renew SSL certificate", "completed": true, "completedAt": "2026-02-26T16:45:00Z", "order": 2 }
+      ]
+    },
+    {
+      "id": "list-2",
+      "name": "Personal",
+      "order": 1,
+      "tasks": [
+        { "id": "t-201", "title": "Book flights for April trip", "completed": false, "order": 0 },
+        { "id": "t-202", "title": "Renew car registration", "completed": false, "order": 1 },
+        { "id": "t-203", "title": "Call Mom back", "completed": false, "order": 2 },
+        { "id": "t-204", "title": "Schedule dentist appointment", "completed": false, "order": 3 },
+        { "id": "t-205", "title": "Return the package from last week's order", "completed": false, "order": 4 }
+      ],
+      "completedTasks": [
+        { "id": "t-206", "title": "Buy birthday gift for Sam", "completed": true, "completedAt": "2026-02-25T11:00:00Z", "order": 0 },
+        { "id": "t-207", "title": "Pick up dry cleaning", "completed": true, "completedAt": "2026-02-24T18:30:00Z", "order": 1 }
+      ]
+    },
+    {
+      "id": "list-3",
+      "name": "Side Project",
+      "order": 2,
+      "tasks": [
+        { "id": "t-301", "title": "Design the landing page hero section", "completed": false, "order": 0 },
+        { "id": "t-302", "title": "Set up domain and hosting", "completed": false, "order": 1 },
+        { "id": "t-303", "title": "Write copy for features section", "completed": false, "order": 2 },
+        { "id": "t-304", "title": "Research pricing models for similar tools", "completed": false, "order": 3 },
+        { "id": "t-305", "title": "Implement email capture form", "completed": false, "order": 4 },
+        { "id": "t-306", "title": "Set up analytics", "completed": false, "order": 5 }
+      ],
+      "completedTasks": []
+    },
+    {
+      "id": "list-4",
+      "name": "Reading",
+      "order": 3,
+      "tasks": [
+        { "id": "t-401", "title": "Finish 'The Mom Test'", "completed": false, "order": 0 },
+        { "id": "t-402", "title": "Read chapter 4 of 'Shape Up'", "completed": false, "order": 1 },
+        { "id": "t-403", "title": "Look up the author of that article from HN", "completed": false, "order": 2 }
+      ],
+      "completedTasks": [
+        { "id": "t-404", "title": "Finish 'Atomic Habits'", "completed": true, "completedAt": "2026-02-20T21:00:00Z", "order": 0 }
+      ]
+    }
+  ]
+}

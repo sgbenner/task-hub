@@ -1,0 +1,13 @@
+/* Design Tokens for TaskHub */
+
+:root {
+  /* Colors — Tailwind palette names */
+  --color-primary: indigo;    /* buttons, links, active states, key accents */
+  --color-secondary: amber;   /* tags, highlights, completed count badges */
+  --color-neutral: stone;     /* backgrounds, text, borders */
+
+  /* Typography */
+  --font-heading: 'Inter', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}

@@ -1,0 +1,92 @@
+{
+  "_meta": {
+    "models": {
+      "Goal": "A single long-term objective belonging to a specific time horizon (1-year, 5-year, or 10-year). Has a required title and an optional description. Goals help users connect their daily work to bigger ambitions.",
+      "Horizon": "A time-based grouping for goals. There are exactly three fixed horizons: 1-year, 5-year, and 10-year."
+    },
+    "relationships": [
+      "Each Goal belongs to exactly one Horizon",
+      "A Horizon can have zero or more Goals"
+    ]
+  },
+  "horizons": [
+    {
+      "id": "1-year",
+      "label": "1 Year",
+      "goals": [
+        {
+          "id": "g-101",
+          "title": "Ship the TaskHub MVP and get 100 paying users",
+          "description": "Build, launch, and iterate until we hit the first meaningful revenue milestone."
+        },
+        {
+          "id": "g-102",
+          "title": "Establish a consistent daily writing habit",
+          "description": "Write for at least 30 minutes every morning before opening email or Slack."
+        },
+        {
+          "id": "g-103",
+          "title": "Complete a half marathon",
+          "description": "Train progressively over 6 months and run the October local race."
+        },
+        {
+          "id": "g-104",
+          "title": "Read 24 books",
+          "description": ""
+        },
+        {
+          "id": "g-105",
+          "title": "Pay off the remaining credit card balance",
+          "description": "Eliminate the last $4,200 using the debt avalanche method while keeping monthly savings consistent."
+        }
+      ]
+    },
+    {
+      "id": "5-year",
+      "goals": [
+        {
+          "id": "g-201",
+          "label": "5 Years",
+          "title": "Grow TaskHub to $1M ARR",
+          "description": "Build a small, profitable team and a product that genuinely helps thousands of people manage their lives."
+        },
+        {
+          "id": "g-202",
+          "title": "Buy a home",
+          "description": "Save enough for a down payment on a modest home in a walkable neighborhood close to good schools."
+        },
+        {
+          "id": "g-203",
+          "title": "Become fluent in Spanish",
+          "description": "Be able to hold a full conversation, read literature, and travel comfortably in Spanish-speaking countries."
+        },
+        {
+          "id": "g-204",
+          "title": "Build a meaningful investment portfolio",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "id": "10-year",
+      "label": "10 Years",
+      "goals": [
+        {
+          "id": "g-301",
+          "title": "Achieve financial independence",
+          "description": "Reach a point where passive income covers living expenses and work becomes a choice rather than a necessity."
+        },
+        {
+          "id": "g-302",
+          "title": "Write and publish a book",
+          "description": "Write something that matters — a non-fiction book on productivity, systems, or intentional living. Traditional or self-published."
+        },
+        {
+          "id": "g-303",
+          "title": "Mentor 10 early-career founders",
+          "description": "Give back by being the advisor I wish I'd had — honest, available, and genuinely invested in their success."
+        }
+      ]
+    }
+  ]
+}
