@@ -1,6 +1,7 @@
 import { useState, useRef, type KeyboardEvent } from 'react'
 import { GripVertical, X, ChevronRight, ChevronDown, Plus, Calendar } from 'lucide-react'
 import type { Task } from '../../types/task-lists'
+import { ConfirmDialog } from '../ConfirmDialog'
 
 function getLocalDateString(): string {
   const now = new Date()
@@ -60,6 +61,7 @@ export function TaskRow({
   const [editValue, setEditValue] = useState(task.title)
   const [expanded, setExpanded] = useState(false)
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('')
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const dateInputRef = useRef<HTMLInputElement>(null)
 
@@ -264,7 +266,7 @@ export function TaskRow({
         {/* Delete */}
         {onDelete && (
           <button
-            onClick={onDelete}
+            onClick={() => setShowDeleteConfirm(true)}
             className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded text-stone-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 shrink-0"
             aria-label="Delete task"
           >
@@ -272,6 +274,23 @@ export function TaskRow({
           </button>
         )}
       </div>
+
+      {/* Delete confirmation dialog */}
+      {showDeleteConfirm && (
+        <ConfirmDialog
+          title={`Delete "${task.title}"?`}
+          message={
+            !isSubtask && task.subtasks.length > 0
+              ? `This task and its ${task.subtasks.length} subtask${task.subtasks.length === 1 ? '' : 's'} will be permanently deleted. This can't be undone.`
+              : 'This task will be permanently deleted. This can\'t be undone.'
+          }
+          onConfirm={() => {
+            onDelete?.()
+            setShowDeleteConfirm(false)
+          }}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
+      )}
 
       {/* Subtask list (expanded) */}
       {!isSubtask && expanded && (

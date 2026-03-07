@@ -2,6 +2,7 @@ import { useState, useRef, type KeyboardEvent } from 'react'
 import { Plus, X, ChevronDown, ChevronRight } from 'lucide-react'
 import type { TaskListsProps, TaskList } from '../../types/task-lists'
 import { TaskRow } from './TaskRow'
+import { ConfirmDialog } from '../ConfirmDialog'
 
 export function TaskListView({
   lists,
@@ -290,33 +291,15 @@ export function TaskListView({
 
       {/* Delete list confirmation modal */}
       {confirmDeleteListId && (
-        <div className="fixed inset-0 bg-black/20 dark:bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white dark:bg-stone-900 rounded-2xl shadow-2xl border border-stone-100 dark:border-stone-800 p-6 max-w-sm w-full">
-            <h3 className="text-sm font-semibold text-stone-900 dark:text-stone-100 mb-1.5">
-              Delete "{lists.find((l) => l.id === confirmDeleteListId)?.name}"?
-            </h3>
-            <p className="text-sm text-stone-500 dark:text-stone-400 mb-6 leading-relaxed">
-              This list and all its tasks will be permanently deleted. This can't be undone.
-            </p>
-            <div className="flex items-center gap-3 justify-end">
-              <button
-                onClick={() => setConfirmDeleteListId(null)}
-                className="px-3 py-1.5 text-sm text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  doDeleteList(confirmDeleteListId)
-                  setConfirmDeleteListId(null)
-                }}
-                className="px-4 py-1.5 text-sm font-medium bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          title={`Delete "${lists.find((l) => l.id === confirmDeleteListId)?.name}"?`}
+          message="This list and all its tasks will be permanently deleted. This can't be undone."
+          onConfirm={() => {
+            doDeleteList(confirmDeleteListId)
+            setConfirmDeleteListId(null)
+          }}
+          onCancel={() => setConfirmDeleteListId(null)}
+        />
       )}
     </div>
   )
