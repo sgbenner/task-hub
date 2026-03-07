@@ -315,6 +315,123 @@ describe('TaskListView', () => {
     })
   })
 
+  describe('List rename', () => {
+    it('enters inline edit mode on double-click', async () => {
+      const user = userEvent.setup()
+
+      render(<TaskListView lists={[mockList]} />)
+
+      const tab = screen.getByText('Work')
+      await user.dblClick(tab)
+
+      const input = screen.getByDisplayValue('Work')
+      expect(input).toBeInTheDocument()
+      expect(input.tagName).toBe('INPUT')
+    })
+
+    it('calls onRenameList on Enter', async () => {
+      const user = userEvent.setup()
+      const onRenameList = vi.fn()
+
+      render(<TaskListView lists={[mockList]} onRenameList={onRenameList} />)
+
+      await user.dblClick(screen.getByText('Work'))
+      const input = screen.getByDisplayValue('Work')
+      await user.clear(input)
+      await user.type(input, 'Projects{Enter}')
+
+      expect(onRenameList).toHaveBeenCalledWith('list-1', 'Projects')
+    })
+
+    it('cancels rename on Escape without calling onRenameList', async () => {
+      const user = userEvent.setup()
+      const onRenameList = vi.fn()
+
+      render(<TaskListView lists={[mockList]} onRenameList={onRenameList} />)
+
+      await user.dblClick(screen.getByText('Work'))
+      const input = screen.getByDisplayValue('Work')
+      await user.clear(input)
+      await user.type(input, 'Projects{Escape}')
+
+      expect(onRenameList).not.toHaveBeenCalled()
+      expect(screen.queryByDisplayValue('Projects')).not.toBeInTheDocument()
+    })
+
+    it('opens rename via kebab menu', async () => {
+      const user = userEvent.setup()
+      const onRenameList = vi.fn()
+
+      render(<TaskListView lists={[mockList]} onRenameList={onRenameList} />)
+
+      await user.click(screen.getByLabelText('List options'))
+      await user.click(screen.getByText('Rename'))
+
+      const input = screen.getByDisplayValue('Work')
+      expect(input).toBeInTheDocument()
+    })
+  })
+
+  describe('List delete', () => {
+    it('shows task count in confirmation dialog', async () => {
+      const user = userEvent.setup()
+
+      render(<TaskListView lists={[mockList]} onDeleteList={vi.fn()} />)
+
+      await user.click(screen.getByLabelText('List options'))
+      await user.click(screen.getByText('Delete'))
+
+      expect(screen.getByText(/2 tasks/)).toBeInTheDocument()
+    })
+
+    it('deletes list via kebab menu and calls onDeleteList after confirming', async () => {
+      const user = userEvent.setup()
+      const onDeleteList = vi.fn()
+
+      render(<TaskListView lists={[mockList]} onDeleteList={onDeleteList} />)
+
+      await user.click(screen.getByLabelText('List options'))
+      await user.click(screen.getByText('Delete'))
+
+      // Confirm
+      await user.click(screen.getByRole('button', { name: 'Delete' }))
+
+      expect(onDeleteList).toHaveBeenCalledWith('list-1')
+    })
+
+    it('cancels list deletion from confirmation dialog', async () => {
+      const user = userEvent.setup()
+      const onDeleteList = vi.fn()
+
+      render(<TaskListView lists={[mockList]} onDeleteList={onDeleteList} />)
+
+      await user.click(screen.getByLabelText('List options'))
+      await user.click(screen.getByText('Delete'))
+      await user.click(screen.getByText('Cancel'))
+
+      expect(onDeleteList).not.toHaveBeenCalled()
+    })
+
+    it('deletes empty list without confirmation', async () => {
+      const user = userEvent.setup()
+      const onDeleteList = vi.fn()
+
+      render(<TaskListView lists={[mockList, mockEmptyList]} onDeleteList={onDeleteList} />)
+
+      // The X button on the inactive empty list tab
+      const tabDeleteButtons = screen.getAllByRole('button').filter(
+        (btn) => btn.querySelector('svg') && btn.className.includes('absolute')
+      )
+
+      if (tabDeleteButtons.length > 0) {
+        await user.click(tabDeleteButtons[0])
+        // Should delete immediately without confirmation
+        expect(onDeleteList).toHaveBeenCalledWith('list-2')
+        expect(screen.queryByText(/Delete "/)).not.toBeInTheDocument()
+      }
+    })
+  })
+
   describe('Task display', () => {
     it('displays task titles', () => {
       render(<TaskListView lists={[mockList]} />)

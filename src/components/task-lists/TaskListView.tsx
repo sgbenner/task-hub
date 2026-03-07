@@ -1,5 +1,5 @@
-import { useState, useRef, type KeyboardEvent } from 'react'
-import { Plus, X, ChevronDown, ChevronRight } from 'lucide-react'
+import { useState, useRef, useEffect, type KeyboardEvent } from 'react'
+import { Plus, X, ChevronDown, ChevronRight, MoreVertical, Pencil, Trash2 } from 'lucide-react'
 import type { TaskListsProps, TaskList } from '../../types/task-lists'
 import { TaskRow } from './TaskRow'
 import { ConfirmDialog } from '../ConfirmDialog'
@@ -29,8 +29,10 @@ export function TaskListView({
   const [addingList, setAddingList] = useState(false)
   const [newListName, setNewListName] = useState('')
   const [confirmDeleteListId, setConfirmDeleteListId] = useState<string | null>(null)
+  const [kebabListId, setKebabListId] = useState<string | null>(null)
 
   const newTaskInputRef = useRef<HTMLInputElement>(null)
+  const kebabMenuRef = useRef<HTMLDivElement>(null)
 
   const activeList = lists.find((l) => l.id === activeListId) ?? null
 
@@ -90,6 +92,18 @@ export function TaskListView({
     }
   }
 
+  // Close kebab menu on outside click
+  useEffect(() => {
+    if (!kebabListId) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (kebabMenuRef.current && !kebabMenuRef.current.contains(e.target as Node)) {
+        setKebabListId(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [kebabListId])
+
   const handleDeleteList = (listId: string) => {
     const list = lists.find((l) => l.id === listId)
     const hasTasks =
@@ -115,7 +129,7 @@ export function TaskListView({
       <div className="border-b border-stone-200 dark:border-stone-800 -mx-4 sm:-mx-6 px-4 sm:px-6">
         <div className="flex items-end gap-0.5 overflow-x-auto">
           {lists.map((list) => (
-            <div key={list.id} className="relative group/tab shrink-0">
+            <div key={list.id} className="relative group/tab shrink-0 flex items-end">
               {editingListId === list.id ? (
                 <input
                   autoFocus
@@ -153,6 +167,42 @@ export function TaskListView({
                     </span>
                   )}
                 </button>
+              )}
+
+              {editingListId !== list.id && list.id === activeListId && (
+                <div className="relative inline-flex" ref={kebabListId === list.id ? kebabMenuRef : undefined}>
+                  <button
+                    onClick={() => setKebabListId(kebabListId === list.id ? null : list.id)}
+                    aria-label="List options"
+                    className="ml-0.5 p-1 -mr-1 text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 transition-colors rounded"
+                  >
+                    <MoreVertical size={14} />
+                  </button>
+                  {kebabListId === list.id && (
+                    <div className="absolute top-full right-0 mt-1 w-36 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-lg shadow-lg z-20 py-1">
+                      <button
+                        onClick={() => {
+                          setKebabListId(null)
+                          handleStartRename(list)
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+                      >
+                        <Pencil size={13} />
+                        Rename
+                      </button>
+                      <button
+                        onClick={() => {
+                          setKebabListId(null)
+                          handleDeleteList(list.id)
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
+                      >
+                        <Trash2 size={13} />
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
 
               {list.id !== activeListId && editingListId !== list.id && (
@@ -290,17 +340,21 @@ export function TaskListView({
       </div>
 
       {/* Delete list confirmation modal */}
-      {confirmDeleteListId && (
-        <ConfirmDialog
-          title={`Delete "${lists.find((l) => l.id === confirmDeleteListId)?.name}"?`}
-          message="This list and all its tasks will be permanently deleted. This can't be undone."
-          onConfirm={() => {
-            doDeleteList(confirmDeleteListId)
-            setConfirmDeleteListId(null)
-          }}
-          onCancel={() => setConfirmDeleteListId(null)}
-        />
-      )}
+      {confirmDeleteListId && (() => {
+        const listToDelete = lists.find((l) => l.id === confirmDeleteListId)
+        const taskCount = (listToDelete?.tasks.length ?? 0) + (listToDelete?.completedTasks.length ?? 0)
+        return (
+          <ConfirmDialog
+            title={`Delete "${listToDelete?.name}"?`}
+            message={`This will permanently delete ${taskCount} ${taskCount === 1 ? 'task' : 'tasks'}. This can't be undone.`}
+            onConfirm={() => {
+              doDeleteList(confirmDeleteListId)
+              setConfirmDeleteListId(null)
+            }}
+            onCancel={() => setConfirmDeleteListId(null)}
+          />
+        )
+      })()}
     </div>
   )
 }
