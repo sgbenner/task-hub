@@ -114,4 +114,5 @@ export interface TaskListsProps {
   onEditSubtask?: (listId: string, parentId: string, subtaskId: string, title: string) => void
   onDeleteSubtask?: (listId: string, parentId: string, subtaskId: string) => void
   onUpdateDueDate?: (taskId: string, date: string | null) => void
+  onMoveTask?: (taskId: string, newParentId: string | null, newOrder: number) => void
 }
