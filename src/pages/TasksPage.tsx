@@ -23,6 +23,7 @@ export function TasksPage() {
     uncompleteSubtask,
     deleteSubtask,
     updateDueDate,
+    reorderTasks,
   } = useTaskLists()
 
   const aiTaskCreator = useAiTaskCreator(lists, fetchAll)
@@ -69,6 +70,7 @@ export function TasksPage() {
       onUncompleteSubtask={uncompleteSubtask}
       onDeleteSubtask={deleteSubtask}
       onUpdateDueDate={updateDueDate}
+      onReorderTasks={reorderTasks}
     />
   )
 }

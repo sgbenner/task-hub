@@ -448,4 +448,104 @@ describe('TaskListView', () => {
       expect(screen.queryByText('Subtask one')).not.toBeInTheDocument()
     })
   })
+
+  describe('Task reordering', () => {
+    const reorderList: TaskList = {
+      id: 'list-r',
+      name: 'Reorder Test',
+      order: 0,
+      tasks: [
+        { id: 't-a', title: 'Task A', completed: false, order: 0, subtasks: [] },
+        { id: 't-b', title: 'Task B', completed: false, order: 1, subtasks: [] },
+        { id: 't-c', title: 'Task C', completed: false, order: 2, subtasks: [] },
+      ],
+      completedTasks: [],
+    }
+
+    it('renders tasks as draggable', () => {
+      render(<TaskListView lists={[reorderList]} />)
+      const taskA = screen.getByText('Task A').closest('[draggable="true"]')
+      expect(taskA).toBeInTheDocument()
+    })
+
+    it('calls onReorderTasks after a valid drag-and-drop', () => {
+      const onReorderTasks = vi.fn()
+      render(
+        <TaskListView lists={[reorderList]} onReorderTasks={onReorderTasks} />
+      )
+
+      const taskA = screen.getByText('Task A').closest('[draggable="true"]')!
+      const taskC = screen.getByText('Task C').closest('[draggable="true"]')!
+
+      // Simulate drag Task A onto Task C
+      fireEvent.dragStart(taskA, {
+        dataTransfer: { effectAllowed: 'move', setData: vi.fn() },
+      })
+      fireEvent.dragOver(taskC, {
+        dataTransfer: { dropEffect: 'move' },
+      })
+      fireEvent.drop(taskC, {
+        dataTransfer: {},
+      })
+
+      expect(onReorderTasks).toHaveBeenCalledWith('list-r', ['t-b', 't-c', 't-a'])
+    })
+
+    it('does not call onReorderTasks when dropping on itself', () => {
+      const onReorderTasks = vi.fn()
+      render(
+        <TaskListView lists={[reorderList]} onReorderTasks={onReorderTasks} />
+      )
+
+      const taskA = screen.getByText('Task A').closest('[draggable="true"]')!
+
+      fireEvent.dragStart(taskA, {
+        dataTransfer: { effectAllowed: 'move', setData: vi.fn() },
+      })
+      fireEvent.dragOver(taskA, {
+        dataTransfer: { dropEffect: 'move' },
+      })
+      fireEvent.drop(taskA, {
+        dataTransfer: {},
+      })
+
+      expect(onReorderTasks).not.toHaveBeenCalled()
+    })
+
+    it('shows drop indicator on drag over', () => {
+      render(<TaskListView lists={[reorderList]} />)
+
+      const taskA = screen.getByText('Task A').closest('[draggable="true"]')!
+      const taskB = screen.getByText('Task B').closest('[draggable="true"]')!
+
+      fireEvent.dragStart(taskA, {
+        dataTransfer: { effectAllowed: 'move', setData: vi.fn() },
+      })
+      fireEvent.dragOver(taskB, {
+        dataTransfer: { dropEffect: 'move' },
+      })
+
+      // The wrapper div around Task B should have the indigo border indicator
+      const taskBWrapper = taskB.parentElement!
+      expect(taskBWrapper.className).toContain('border-indigo-400')
+    })
+
+    it('clears drop indicator on drag end', () => {
+      render(<TaskListView lists={[reorderList]} />)
+
+      const taskA = screen.getByText('Task A').closest('[draggable="true"]')!
+      const taskB = screen.getByText('Task B').closest('[draggable="true"]')!
+
+      fireEvent.dragStart(taskA, {
+        dataTransfer: { effectAllowed: 'move', setData: vi.fn() },
+      })
+      fireEvent.dragOver(taskB, {
+        dataTransfer: { dropEffect: 'move' },
+      })
+      fireEvent.dragEnd(taskA)
+
+      const taskBWrapper = taskB.parentElement!
+      expect(taskBWrapper.className).toContain('border-transparent')
+    })
+  })
 })

@@ -28,6 +28,11 @@ interface TaskRowProps {
   isSubtask?: boolean
   showDragHandle?: boolean
   extraActions?: React.ReactNode
+  draggable?: boolean
+  onDragStart?: (e: React.DragEvent) => void
+  onDragOver?: (e: React.DragEvent) => void
+  onDragEnd?: (e: React.DragEvent) => void
+  onDrop?: (e: React.DragEvent) => void
   onComplete?: () => void
   onUncomplete?: () => void
   onEdit?: (title: string) => void
@@ -46,6 +51,11 @@ export function TaskRow({
   isSubtask = false,
   showDragHandle = true,
   extraActions,
+  draggable = false,
+  onDragStart,
+  onDragOver,
+  onDragEnd,
+  onDrop,
   onComplete,
   onUncomplete,
   onEdit,
@@ -113,7 +123,13 @@ export function TaskRow({
   }
 
   return (
-    <div>
+    <div
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDragEnd={onDragEnd}
+      onDrop={onDrop}
+    >
       <div className={[
         'flex items-center gap-2.5 px-1 py-1.5 rounded-lg group transition-colors',
         overdue
