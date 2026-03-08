@@ -18,7 +18,6 @@ export function TaskListView({
   onCompleteSubtask,
   onUncompleteSubtask,
   onEditSubtask,
-  onReorderTasks,
   onDeleteSubtask,
   onUpdateDueDate,
   onMoveTask,
@@ -105,26 +104,6 @@ export function TaskListView({
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [kebabListId])
-
-  // Drag-and-drop reordering
-  const dragTaskId = useRef<string | null>(null)
-
-  const handleDragStart = (taskId: string) => {
-    dragTaskId.current = taskId
-  }
-
-  const handleDrop = (targetTaskId: string) => {
-    const sourceId = dragTaskId.current
-    dragTaskId.current = null
-    if (!sourceId || sourceId === targetTaskId || !activeList) return
-    const ids = activeList.tasks.map((t) => t.id)
-    const fromIdx = ids.indexOf(sourceId)
-    const toIdx = ids.indexOf(targetTaskId)
-    if (fromIdx === -1 || toIdx === -1) return
-    ids.splice(fromIdx, 1)
-    ids.splice(toIdx, 0, sourceId)
-    onReorderTasks?.(activeList.id, ids)
-  }
 
   const handleDeleteList = (listId: string) => {
     const list = lists.find((l) => l.id === listId)
