@@ -427,7 +427,7 @@ export function TaskRow({
       {/* Nest drop indicator */}
       {dropZone === 'nest' && (
         <div
-          className="ml-8 h-0.5 bg-indigo-500 rounded-full"
+          className="ml-12 h-0.5 bg-indigo-500 rounded-full"
           data-testid="drop-indicator-nest"
         />
       )}
@@ -442,7 +442,7 @@ export function TaskRow({
 
       {/* Subtask list (expanded) */}
       {!isSubtask && expanded && (
-        <div className="pl-8 space-y-0.5">
+        <div className="pl-12 space-y-0.5">
           {task.subtasks.map((subtask, i) => (
             <TaskRow
               key={subtask.id}
