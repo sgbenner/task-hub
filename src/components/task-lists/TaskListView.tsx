@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect, type KeyboardEvent } from 'react'
-import { Plus, X, ChevronDown, ChevronRight, MoreVertical, Pencil, Trash2 } from 'lucide-react'
+import { useState, useRef, type KeyboardEvent } from 'react'
+import { Plus, ChevronDown, ChevronRight, Pencil, Trash2 } from 'lucide-react'
 import type { TaskListsProps, TaskList } from '../../types/task-lists'
 import { TaskRow } from './TaskRow'
 import { ConfirmDialog } from '../ConfirmDialog'
@@ -30,10 +30,7 @@ export function TaskListView({
   const [addingList, setAddingList] = useState(false)
   const [newListName, setNewListName] = useState('')
   const [confirmDeleteListId, setConfirmDeleteListId] = useState<string | null>(null)
-  const [kebabListId, setKebabListId] = useState<string | null>(null)
-
   const newTaskInputRef = useRef<HTMLInputElement>(null)
-  const kebabMenuRef = useRef<HTMLDivElement>(null)
 
   const activeList = lists.find((l) => l.id === activeListId) ?? null
 
@@ -93,18 +90,6 @@ export function TaskListView({
     }
   }
 
-  // Close kebab menu on outside click
-  useEffect(() => {
-    if (!kebabListId) return
-    const handleClickOutside = (e: MouseEvent) => {
-      if (kebabMenuRef.current && !kebabMenuRef.current.contains(e.target as Node)) {
-        setKebabListId(null)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [kebabListId])
-
   const handleDeleteList = (listId: string) => {
     const list = lists.find((l) => l.id === listId)
     const hasTasks =
@@ -131,89 +116,32 @@ export function TaskListView({
         <div className="flex items-end gap-0.5 overflow-x-auto">
           {lists.map((list) => (
             <div key={list.id} className="relative group/tab shrink-0 flex items-end">
-              {editingListId === list.id ? (
-                <input
-                  autoFocus
-                  value={editingListName}
-                  onChange={(e) => setEditingListName(e.target.value)}
-                  onBlur={handleRenameSubmit}
-                  onKeyDown={handleRenameKeyDown}
-                  className="px-3 py-2.5 text-sm font-medium bg-transparent border-b-2 border-indigo-500 text-stone-900 dark:text-stone-100 outline-none w-28"
-                />
-              ) : (
-                <button
-                  onClick={() => {
-                    setActiveListId(list.id)
-                    setShowCompleted(false)
-                  }}
-                  onDoubleClick={() => handleStartRename(list)}
-                  className={[
-                    'flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 transition-all whitespace-nowrap',
-                    list.id === activeListId
-                      ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
-                      : 'border-transparent text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 hover:border-stone-300 dark:hover:border-stone-600',
-                  ].join(' ')}
-                >
-                  {list.name}
-                  {list.tasks.length > 0 && (
-                    <span
-                      className={[
-                        'text-xs tabular-nums px-1.5 py-0.5 rounded-full font-normal',
-                        list.id === activeListId
-                          ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400'
-                          : 'bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-500',
-                      ].join(' ')}
-                    >
-                      {list.tasks.length}
-                    </span>
-                  )}
-                </button>
-              )}
-
-              {editingListId !== list.id && list.id === activeListId && (
-                <div className="relative inline-flex" ref={kebabListId === list.id ? kebabMenuRef : undefined}>
-                  <button
-                    onClick={() => setKebabListId(kebabListId === list.id ? null : list.id)}
-                    aria-label="List options"
-                    className="ml-0.5 p-1 -mr-1 text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 transition-colors rounded"
+              <button
+                onClick={() => {
+                  setActiveListId(list.id)
+                  setShowCompleted(false)
+                }}
+                className={[
+                  'flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 transition-all whitespace-nowrap',
+                  list.id === activeListId
+                    ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                    : 'border-transparent text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 hover:border-stone-300 dark:hover:border-stone-600',
+                ].join(' ')}
+              >
+                {list.name}
+                {list.tasks.length > 0 && (
+                  <span
+                    className={[
+                      'text-xs tabular-nums px-1.5 py-0.5 rounded-full font-normal',
+                      list.id === activeListId
+                        ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400'
+                        : 'bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-500',
+                    ].join(' ')}
                   >
-                    <MoreVertical size={14} />
-                  </button>
-                  {kebabListId === list.id && (
-                    <div className="absolute top-full right-0 mt-1 w-36 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-lg shadow-lg z-20 py-1">
-                      <button
-                        onClick={() => {
-                          setKebabListId(null)
-                          handleStartRename(list)
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
-                      >
-                        <Pencil size={13} />
-                        Rename
-                      </button>
-                      <button
-                        onClick={() => {
-                          setKebabListId(null)
-                          handleDeleteList(list.id)
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
-                      >
-                        <Trash2 size={13} />
-                        Delete
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {list.id !== activeListId && editingListId !== list.id && (
-                <button
-                  onClick={() => handleDeleteList(list.id)}
-                  className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-stone-200 dark:bg-stone-700 text-stone-500 items-center justify-center hidden group-hover/tab:flex hover:bg-red-100 hover:text-red-500 dark:hover:bg-red-900/40 dark:hover:text-red-400 transition-colors z-10"
-                >
-                  <X size={8} />
-                </button>
-              )}
+                    {list.tasks.length}
+                  </span>
+                )}
+              </button>
             </div>
           ))}
 
@@ -243,6 +171,44 @@ export function TaskListView({
       <div className="py-8 max-w-2xl">
         {activeList ? (
           <>
+            {/* List header with actions */}
+            <div className="flex items-center justify-between mb-6">
+              {editingListId === activeList.id ? (
+                <input
+                  autoFocus
+                  value={editingListName}
+                  onChange={(e) => setEditingListName(e.target.value)}
+                  onBlur={handleRenameSubmit}
+                  onKeyDown={handleRenameKeyDown}
+                  className="text-lg font-semibold bg-transparent border-b-2 border-indigo-500 text-stone-900 dark:text-stone-100 outline-none px-1 py-0.5"
+                />
+              ) : (
+                <h2
+                  className="text-lg font-semibold text-stone-900 dark:text-stone-100 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                  onDoubleClick={() => handleStartRename(activeList)}
+                  title="Double-click to rename"
+                >
+                  {activeList.name}
+                </h2>
+              )}
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => handleStartRename(activeList)}
+                  aria-label="Rename list"
+                  className="p-1.5 text-stone-400 dark:text-stone-500 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-md transition-colors"
+                >
+                  <Pencil size={14} />
+                </button>
+                <button
+                  onClick={() => handleDeleteList(activeList.id)}
+                  aria-label="Delete list"
+                  className="p-1.5 text-stone-400 dark:text-stone-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-md transition-colors"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
+
             {/* New task input */}
             <div className="flex items-center gap-3 mb-8 group/input pb-3 border-b border-stone-100 dark:border-stone-800 focus-within:border-indigo-200 dark:focus-within:border-indigo-900 transition-colors">
               <div className="w-[18px] h-[18px] rounded-full border-2 border-stone-300 dark:border-stone-600 group-focus-within/input:border-indigo-400 transition-colors shrink-0" />

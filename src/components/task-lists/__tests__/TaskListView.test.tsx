@@ -229,7 +229,8 @@ describe('TaskListView', () => {
     it('renders list tabs with correct active styling', () => {
       render(<TaskListView lists={[mockList, mockEmptyList]} />)
 
-      expect(screen.getByText('Work')).toBeInTheDocument()
+      // Work appears in both tab and content header
+      expect(screen.getAllByText('Work').length).toBeGreaterThanOrEqual(1)
       expect(screen.getByText('Personal')).toBeInTheDocument()
     })
 
@@ -294,35 +295,24 @@ describe('TaskListView', () => {
 
     it('shows delete confirmation modal for list with tasks', async () => {
       const user = userEvent.setup()
-      const listWithTasks: TaskList = {
-        ...mockEmptyList,
-        tasks: [{ id: 't-99', title: 'A task', completed: false, order: 0, subtasks: [] }],
-      }
 
-      render(<TaskListView lists={[mockList, listWithTasks]} />)
+      render(<TaskListView lists={[mockList]} onDeleteList={vi.fn()} />)
 
-      // The delete button appears on hover over inactive tabs
-      // We need to find the small × button on the Personal tab
-      const tabDeleteButtons = screen.getAllByRole('button').filter(
-        (btn) => btn.querySelector('svg') && btn.className.includes('absolute')
-      )
+      await user.click(screen.getByLabelText('Delete list'))
 
-      if (tabDeleteButtons.length > 0) {
-        await user.click(tabDeleteButtons[0])
-        expect(screen.getByText(/Delete "/)).toBeInTheDocument()
-        expect(screen.getByText('Cancel')).toBeInTheDocument()
-      }
+      expect(screen.getByText(/Delete "/)).toBeInTheDocument()
+      expect(screen.getByText('Cancel')).toBeInTheDocument()
     })
   })
 
   describe('List rename', () => {
-    it('enters inline edit mode on double-click', async () => {
+    it('enters inline edit mode on double-click of list header', async () => {
       const user = userEvent.setup()
 
       render(<TaskListView lists={[mockList]} />)
 
-      const tab = screen.getByText('Work')
-      await user.dblClick(tab)
+      const header = screen.getByRole('heading', { level: 2 })
+      await user.dblClick(header)
 
       const input = screen.getByDisplayValue('Work')
       expect(input).toBeInTheDocument()
@@ -335,7 +325,7 @@ describe('TaskListView', () => {
 
       render(<TaskListView lists={[mockList]} onRenameList={onRenameList} />)
 
-      await user.dblClick(screen.getByText('Work'))
+      await user.dblClick(screen.getByRole('heading', { level: 2 }))
       const input = screen.getByDisplayValue('Work')
       await user.clear(input)
       await user.type(input, 'Projects{Enter}')
@@ -349,7 +339,7 @@ describe('TaskListView', () => {
 
       render(<TaskListView lists={[mockList]} onRenameList={onRenameList} />)
 
-      await user.dblClick(screen.getByText('Work'))
+      await user.dblClick(screen.getByRole('heading', { level: 2 }))
       const input = screen.getByDisplayValue('Work')
       await user.clear(input)
       await user.type(input, 'Projects{Escape}')
@@ -358,14 +348,13 @@ describe('TaskListView', () => {
       expect(screen.queryByDisplayValue('Projects')).not.toBeInTheDocument()
     })
 
-    it('opens rename via kebab menu', async () => {
+    it('opens rename via pencil button', async () => {
       const user = userEvent.setup()
       const onRenameList = vi.fn()
 
       render(<TaskListView lists={[mockList]} onRenameList={onRenameList} />)
 
-      await user.click(screen.getByLabelText('List options'))
-      await user.click(screen.getByText('Rename'))
+      await user.click(screen.getByLabelText('Rename list'))
 
       const input = screen.getByDisplayValue('Work')
       expect(input).toBeInTheDocument()
@@ -378,22 +367,18 @@ describe('TaskListView', () => {
 
       render(<TaskListView lists={[mockList]} onDeleteList={vi.fn()} />)
 
-      await user.click(screen.getByLabelText('List options'))
-      await user.click(screen.getByText('Delete'))
+      await user.click(screen.getByLabelText('Delete list'))
 
       expect(screen.getByText(/2 tasks/)).toBeInTheDocument()
     })
 
-    it('deletes list via kebab menu and calls onDeleteList after confirming', async () => {
+    it('calls onDeleteList after confirming deletion', async () => {
       const user = userEvent.setup()
       const onDeleteList = vi.fn()
 
       render(<TaskListView lists={[mockList]} onDeleteList={onDeleteList} />)
 
-      await user.click(screen.getByLabelText('List options'))
-      await user.click(screen.getByText('Delete'))
-
-      // Confirm
+      await user.click(screen.getByLabelText('Delete list'))
       await user.click(screen.getByRole('button', { name: 'Delete' }))
 
       expect(onDeleteList).toHaveBeenCalledWith('list-1')
@@ -405,8 +390,7 @@ describe('TaskListView', () => {
 
       render(<TaskListView lists={[mockList]} onDeleteList={onDeleteList} />)
 
-      await user.click(screen.getByLabelText('List options'))
-      await user.click(screen.getByText('Delete'))
+      await user.click(screen.getByLabelText('Delete list'))
       await user.click(screen.getByText('Cancel'))
 
       expect(onDeleteList).not.toHaveBeenCalled()
@@ -416,19 +400,13 @@ describe('TaskListView', () => {
       const user = userEvent.setup()
       const onDeleteList = vi.fn()
 
-      render(<TaskListView lists={[mockList, mockEmptyList]} onDeleteList={onDeleteList} />)
+      render(<TaskListView lists={[mockEmptyList]} onDeleteList={onDeleteList} />)
 
-      // The X button on the inactive empty list tab
-      const tabDeleteButtons = screen.getAllByRole('button').filter(
-        (btn) => btn.querySelector('svg') && btn.className.includes('absolute')
-      )
+      await user.click(screen.getByLabelText('Delete list'))
 
-      if (tabDeleteButtons.length > 0) {
-        await user.click(tabDeleteButtons[0])
-        // Should delete immediately without confirmation
-        expect(onDeleteList).toHaveBeenCalledWith('list-2')
-        expect(screen.queryByText(/Delete "/)).not.toBeInTheDocument()
-      }
+      // Should delete immediately without confirmation (no tasks)
+      expect(onDeleteList).toHaveBeenCalledWith('list-2')
+      expect(screen.queryByText(/Delete "/)).not.toBeInTheDocument()
     })
   })
 
