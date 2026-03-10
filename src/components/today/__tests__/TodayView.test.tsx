@@ -15,6 +15,11 @@ const defaultProps = {
   onUncompleteTask: vi.fn(),
   onCompleteSubtask: vi.fn(),
   onUncompleteSubtask: vi.fn(),
+  onEditTask: vi.fn(),
+  onDeleteTask: vi.fn(),
+  onEditSubtask: vi.fn(),
+  onDeleteSubtask: vi.fn(),
+  onUpdateDueDate: vi.fn(),
 }
 
 const mockTodayTask: TodayTask = {
@@ -185,9 +190,9 @@ describe('TodayView', () => {
       expect(onUnscheduleTask).toHaveBeenCalledWith('t-1')
     })
 
-    it('does not render delete buttons', () => {
+    it('renders delete button on task', () => {
       render(<TodayView {...defaultProps} groups={[mockGroup]} />)
-      expect(screen.queryByLabelText('Delete task')).not.toBeInTheDocument()
+      expect(screen.getByLabelText('Delete task')).toBeInTheDocument()
     })
   })
 

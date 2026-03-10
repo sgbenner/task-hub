@@ -272,6 +272,82 @@ export function useTodayTasks() {
     }
   }, [fetchAll])
 
+  const editTask = useCallback(async (taskId: string, title: string) => {
+    setDbTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, title } : t))
+    )
+
+    const { error } = await supabase
+      .from('tasks')
+      .update({ title })
+      .eq('id', taskId)
+
+    if (error) {
+      setError(error.message)
+      await fetchAll()
+    }
+  }, [fetchAll])
+
+  const deleteTask = useCallback(async (taskId: string) => {
+    setDbTasks((prev) => prev.filter((t) => t.id !== taskId && t.parent_id !== taskId))
+
+    const { error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('id', taskId)
+
+    if (error) {
+      setError(error.message)
+      await fetchAll()
+    }
+  }, [fetchAll])
+
+  const editSubtask = useCallback(async (_parentId: string, subtaskId: string, title: string) => {
+    setDbTasks((prev) =>
+      prev.map((t) => (t.id === subtaskId ? { ...t, title } : t))
+    )
+
+    const { error } = await supabase
+      .from('tasks')
+      .update({ title })
+      .eq('id', subtaskId)
+
+    if (error) {
+      setError(error.message)
+      await fetchAll()
+    }
+  }, [fetchAll])
+
+  const deleteSubtask = useCallback(async (_parentId: string, subtaskId: string) => {
+    setDbTasks((prev) => prev.filter((t) => t.id !== subtaskId))
+
+    const { error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('id', subtaskId)
+
+    if (error) {
+      setError(error.message)
+      await fetchAll()
+    }
+  }, [fetchAll])
+
+  const updateDueDate = useCallback(async (taskId: string, date: string | null) => {
+    setDbTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, due_date: date } : t))
+    )
+
+    const { error } = await supabase
+      .from('tasks')
+      .update({ due_date: date })
+      .eq('id', taskId)
+
+    if (error) {
+      setError(error.message)
+      await fetchAll()
+    }
+  }, [fetchAll])
+
   return {
     groups,
     completedTasks,
@@ -284,6 +360,11 @@ export function useTodayTasks() {
     uncompleteTask,
     completeSubtask,
     uncompleteSubtask,
+    editTask,
+    deleteTask,
+    editSubtask,
+    deleteSubtask,
+    updateDueDate,
     undoneTasks,
     loading,
     error,
