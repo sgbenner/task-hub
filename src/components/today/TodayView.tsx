@@ -16,6 +16,11 @@ export function TodayView({
   onUncompleteTask,
   onCompleteSubtask,
   onUncompleteSubtask,
+  onEditTask,
+  onDeleteTask,
+  onEditSubtask,
+  onDeleteSubtask,
+  onUpdateDueDate,
   plannerProps,
 }: TodayViewProps) {
   const [showCompleted, setShowCompleted] = useState(false)
@@ -131,8 +136,13 @@ export function TodayView({
                   task={task}
                   showDragHandle={false}
                   onComplete={() => onCompleteTask(task.id)}
+                  onEdit={(title) => onEditTask(task.id, title)}
+                  onDelete={() => onDeleteTask(task.id)}
                   onCompleteSubtask={(subtaskId) => onCompleteSubtask(task.id, subtaskId)}
                   onUncompleteSubtask={(subtaskId) => onUncompleteSubtask(task.id, subtaskId)}
+                  onEditSubtask={(subtaskId, title) => onEditSubtask(task.id, subtaskId, title)}
+                  onDeleteSubtask={(subtaskId) => onDeleteSubtask(task.id, subtaskId)}
+                  onUpdateDueDate={(date) => onUpdateDueDate(task.id, date)}
                   extraActions={
                     <button
                       onClick={() => onUnscheduleTask(task.id)}
@@ -175,8 +185,13 @@ export function TodayView({
                     completed
                     showDragHandle={false}
                     onUncomplete={() => onUncompleteTask(task.id)}
+                    onEdit={(title) => onEditTask(task.id, title)}
+                    onDelete={() => onDeleteTask(task.id)}
                     onCompleteSubtask={(subtaskId) => onCompleteSubtask(task.id, subtaskId)}
                     onUncompleteSubtask={(subtaskId) => onUncompleteSubtask(task.id, subtaskId)}
+                    onEditSubtask={(subtaskId, title) => onEditSubtask(task.id, subtaskId, title)}
+                    onDeleteSubtask={(subtaskId) => onDeleteSubtask(task.id, subtaskId)}
+                    onUpdateDueDate={(date) => onUpdateDueDate(task.id, date)}
                     extraActions={
                       <button
                         onClick={() => onUnscheduleTask(task.id)}

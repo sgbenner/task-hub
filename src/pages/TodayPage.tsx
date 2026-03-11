@@ -17,6 +17,11 @@ export function TodayPage() {
     uncompleteTask,
     completeSubtask,
     uncompleteSubtask,
+    editTask,
+    deleteTask,
+    editSubtask,
+    deleteSubtask,
+    updateDueDate,
     undoneTasks,
     loading,
     error,
@@ -83,6 +88,11 @@ export function TodayPage() {
       onUncompleteTask={uncompleteTask}
       onCompleteSubtask={completeSubtask}
       onUncompleteSubtask={uncompleteSubtask}
+      onEditTask={editTask}
+      onDeleteTask={deleteTask}
+      onEditSubtask={editSubtask}
+      onDeleteSubtask={deleteSubtask}
+      onUpdateDueDate={updateDueDate}
       plannerProps={plannerProps}
     />
   )

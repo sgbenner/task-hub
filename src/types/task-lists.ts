@@ -39,6 +39,11 @@ export interface TodayViewProps {
   onUncompleteTask: (taskId: string) => void
   onCompleteSubtask: (parentId: string, subtaskId: string) => void
   onUncompleteSubtask: (parentId: string, subtaskId: string) => void
+  onEditTask: (taskId: string, title: string) => void
+  onDeleteTask: (taskId: string) => void
+  onEditSubtask: (parentId: string, subtaskId: string, title: string) => void
+  onDeleteSubtask: (parentId: string, subtaskId: string) => void
+  onUpdateDueDate: (taskId: string, date: string | null) => void
   plannerProps?: AiPlannerProps
 }
 
